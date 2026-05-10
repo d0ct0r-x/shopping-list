@@ -10,13 +10,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#F9F9F9',
-        surface: '#FFFFFF',
-        primary: '#4CAF50',
-        danger: '#FF5252',
-        foreground: '#1A1A1A',
-        'muted-foreground': '#AAAAAA',
-        separator: '#E8E8E8',
+        background: 'var(--color-background)',
+        surface: 'var(--color-surface)',
+        primary: {
+          DEFAULT: 'var(--color-primary)',
+          foreground: 'var(--color-primary-foreground)',
+        },
+        danger: 'var(--color-danger)',
+        foreground: 'var(--color-foreground)',
+        'muted-foreground': 'var(--color-muted-foreground)',
+        separator: 'var(--color-separator)',
+        input: 'var(--color-input)',
+        ring: 'var(--color-ring)',
+        destructive: 'var(--color-danger)',
       },
     },
   },
