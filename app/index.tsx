@@ -11,34 +11,38 @@ export default function HomeScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      className="flex-1 bg-background"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <SafeAreaView style={styles.flex}>
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Shopping List</Text>
+      <SafeAreaView className="flex-1">
+        <View className="px-4 pt-3 pb-2">
+          <Text className="text-[28px] font-bold text-foreground">Shopping List</Text>
         </View>
         <AddItemBar onAdd={addItem} />
         <FlatList
+          className="flex-1 mx-4"
           data={items}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <ItemRow item={item} onToggle={toggleItem} onRemove={removeItem} />
           )}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={items.length === 0 && styles.emptyContainer}
+          ItemSeparatorComponent={() => <View className="h-px bg-separator" />}
+          contentContainerStyle={items.length === 0 ? styles.emptyContainer : undefined}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Your list is empty.{'\n'}Add something above.</Text>
+            <Text className="text-center text-muted-foreground text-base leading-6">
+              Your list is empty.{'\n'}Add something above.
+            </Text>
           }
           keyboardShouldPersistTaps="handled"
-          style={styles.list}
         />
         {checkedCount > 0 && (
           <Pressable
-            style={({ pressed }) => [styles.clearButton, pressed && styles.clearButtonPressed]}
+            className="m-4 py-3.5 rounded-xl bg-surface items-center border border-separator active:bg-red-50 active:border-danger"
             onPress={clearChecked}
           >
-            <Text style={styles.clearButtonText}>Remove checked ({checkedCount})</Text>
+            <Text className="text-danger text-[15px] font-semibold">
+              Remove checked ({checkedCount})
+            </Text>
           </Pressable>
         )}
       </SafeAreaView>
@@ -47,55 +51,9 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: '#F9F9F9',
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  headerText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  list: {
-    flex: 1,
-    marginHorizontal: 16,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#E8E8E8',
-  },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#AAAAAA',
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  clearButton: {
-    margin: 16,
-    paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  clearButtonPressed: {
-    backgroundColor: '#FFF0F0',
-    borderColor: '#FF5252',
-  },
-  clearButtonText: {
-    color: '#FF5252',
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

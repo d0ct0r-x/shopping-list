@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
+
+import { useTheme } from '@/theme';
 
 type Props = {
   onAdd: (name: string) => void;
@@ -8,6 +10,7 @@ type Props = {
 export const AddItemBar = ({ onAdd }: Props) => {
   const [text, setText] = useState('');
   const inputRef = useRef<TextInput>(null);
+  const { mutedForeground } = useTheme();
 
   const submit = () => {
     if (text.trim()) {
@@ -17,63 +20,24 @@ export const AddItemBar = ({ onAdd }: Props) => {
   };
 
   return (
-    <View style={styles.addBar}>
+    <View className="flex-row items-center mx-4 mb-3 bg-surface rounded-xl px-3 py-1 shadow-sm">
       <TextInput
         ref={inputRef}
-        style={styles.input}
+        className="flex-1 text-base text-foreground py-2.5"
         value={text}
         onChangeText={setText}
         placeholder="Add an item…"
-        placeholderTextColor="#AAAAAA"
+        placeholderTextColor={mutedForeground}
         returnKeyType="done"
         onSubmitEditing={submit}
         blurOnSubmit={false}
       />
       <Pressable
-        style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}
+        className="bg-primary rounded-lg px-4 py-2 ml-2 active:opacity-75"
         onPress={submit}
       >
-        <Text style={styles.addButtonText}>Add</Text>
+        <Text className="text-white text-[15px] font-semibold">Add</Text>
       </Pressable>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  addBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1A1A1A',
-    paddingVertical: 10,
-  },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginLeft: 8,
-  },
-  addButtonPressed: {
-    opacity: 0.75,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});
