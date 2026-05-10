@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { Checkbox } from '@/components/ui/checkbox';
 import type { ShoppingItem } from '@/schemas';
 
 type Props = {
@@ -16,16 +17,14 @@ export const ItemRow = ({ item, onToggle, onRemove }: Props) => (
       accessibilityRole="checkbox"
       accessibilityState={{ checked: item.checked }}
     >
-      <View
-        className={
-          item.checked
-            ? 'w-6 h-6 rounded-md border-2 border-primary bg-primary items-center justify-center mr-3'
-            : 'w-6 h-6 rounded-md border-2 border-primary items-center justify-center mr-3'
-        }
-      >
-        {item.checked && (
-          <Text className="text-white text-sm font-bold leading-4">✓</Text>
-        )}
+      <View pointerEvents="none" className="mr-3">
+        <Checkbox
+          checked={item.checked}
+          onCheckedChange={() => {}}
+          checkedClassName="border-primary"
+          indicatorClassName="bg-primary"
+          iconClassName="text-primary-foreground"
+        />
       </View>
       <Text
         className={
