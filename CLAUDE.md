@@ -20,3 +20,5 @@ Examples:
 - `feat(list): add swipe-to-delete gesture`
 - `fix(storage): handle empty AsyncStorage read`
 - `chore: update expo SDK to 55`
+
+Commits should be **atomic** — one logical change per commit. Dependency installs, bug fixes, and config changes should each be their own commit even when made in the same session.
