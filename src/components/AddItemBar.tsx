@@ -33,6 +33,7 @@ export const AddItemBar = ({ onAdd }: Props) => {
         blurOnSubmit={false}
       />
       <Pressable
+        testID="add-button"
         className="bg-primary rounded-lg px-4 py-2 ml-2 active:opacity-75"
         onPress={submit}
       >
