@@ -3,13 +3,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useRef } from 'react';
 import { useShoppingList } from './src/useShoppingList';
 import { ShoppingItem } from './src/types';
@@ -88,10 +88,11 @@ export default function App() {
   const checkedCount = items.filter(i => i.checked).length;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <SafeAreaProvider>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <SafeAreaView style={styles.flex}>
         <StatusBar barStyle="dark-content" backgroundColor="#F9F9F9" />
         <View style={styles.header}>
@@ -121,7 +122,8 @@ export default function App() {
           </Pressable>
         )}
       </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaProvider>
   );
 }
 
