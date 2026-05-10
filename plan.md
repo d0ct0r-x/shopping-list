@@ -94,6 +94,63 @@ nativewind tailwindcss@^3
 
 ---
 
+### Phase 2.5 — Playwright E2E (Web Target)
+
+**Install (devDependencies):**
+```
+@playwright/test
+```
+
+**One-time machine setup (not committed):**
+```
+npx playwright install chromium
+```
+
+**Files to create/change:**
+- `playwright.config.ts` — Chromium only; `baseURL: http://localhost:8081`; `webServer` block starts `npx expo start --web` and waits for the URL before running tests; `reuseExistingServer: !process.env.CI` so a locally running dev server is reused; screenshot on failure; output dirs `playwright-report/` and `test-results/`
+- `e2e/smoke.spec.ts` — single spec that:
+  1. Navigates to `/`
+  2. Asserts the "Shopping List" heading is visible
+  3. Adds an item via the input + Add button; asserts it appears in the list
+  4. Calls `page.screenshot({ path: 'screenshots/smoke.png', fullPage: true })` to produce a committed reference screenshot
+- `screenshots/` — committed directory; `smoke.png` committed as visual proof the app renders correctly
+- `.gitignore` — add `playwright-report/` and `test-results/`
+- `package.json` scripts:
+  - `test:e2e` — `playwright test`
+  - `test:e2e:ui` — `playwright test --ui` (interactive mode for local debugging)
+  - update `test` to run Vitest + jest-expo + Playwright in sequence
+
+**Config detail — `playwright.config.ts`:**
+```ts
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: true,
+  retries: process.env.CI ? 2 : 0,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:8081',
+    screenshot: 'only-on-failure',
+    trace: 'on-first-retry',
+  },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  webServer: {
+    command: 'npx expo start --web',
+    url: 'http://localhost:8081',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
+});
+```
+
+**Verify:**
+- `npm run test:e2e` exits 0
+- `screenshots/smoke.png` is written and shows the rendered app
+- `npm run test:unit` still passes (no interference)
+
+---
+
 ### Phase 3 — Component Tests (jest-expo)
 
 **Install (devDependencies):**
