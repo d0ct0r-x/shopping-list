@@ -1,5 +1,1 @@
-export type ShoppingItem = {
-  id: string;
-  name: string;
-  checked: boolean;
-};
+export type { ShoppingItem } from './schemas';

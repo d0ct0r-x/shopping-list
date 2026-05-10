@@ -1,18 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ShoppingItem } from './types';
+
+import { ShoppingItemSchema } from './schemas';
+import type { ShoppingItem } from './schemas';
 
 const KEY = 'shopping_list_v1';
 
-export async function loadItems(): Promise<ShoppingItem[]> {
+export const loadItems = async (): Promise<ShoppingItem[]> => {
   const raw = await AsyncStorage.getItem(KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as ShoppingItem[];
+    const result = ShoppingItemSchema.array().safeParse(JSON.parse(raw));
+    return result.success ? result.data : [];
   } catch {
     return [];
   }
-}
+};
 
-export async function saveItems(items: ShoppingItem[]): Promise<void> {
+export const saveItems = async (items: ShoppingItem[]): Promise<void> => {
   await AsyncStorage.setItem(KEY, JSON.stringify(items));
-}
+};
