@@ -1,11 +1,15 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useShoppingList } from './useShoppingList';
+import { REMOVAL_DELAY_MS, useShoppingList } from './useShoppingList';
 
 beforeEach(async () => {
   await AsyncStorage.clear();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 const setup = async () => {
@@ -41,15 +45,52 @@ describe('useShoppingList', () => {
     expect(result.current.items.find(i => i.id === id)?.checked).toBe(true);
   });
 
-  it('removeItem deletes the item by id', async () => {
+  it('updateItem renames an item', async () => {
     const result = await setup();
     act(() => { result.current.addItem('Bread'); });
     const id = result.current.items[0].id;
+    act(() => { result.current.updateItem(id, 'Sourdough bread'); });
+    expect(result.current.items.find(i => i.id === id)?.name).toBe('Sourdough bread');
+  });
+
+  it('updateItem ignores blank names', async () => {
+    const result = await setup();
+    act(() => { result.current.addItem('Bread'); });
+    const id = result.current.items[0].id;
+    act(() => { result.current.updateItem(id, '   '); });
+    expect(result.current.items.find(i => i.id === id)?.name).toBe('Bread');
+  });
+
+  it('removeItem marks the item pending but keeps it until the timer elapses', async () => {
+    vi.useFakeTimers();
+    const result = await setup();
+    act(() => { result.current.addItem('Bread'); });
+    const id = result.current.items[0].id;
+
     act(() => { result.current.removeItem(id); });
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.pendingIds.has(id)).toBe(true);
+
+    act(() => { vi.advanceTimersByTime(REMOVAL_DELAY_MS); });
     expect(result.current.items).toHaveLength(0);
   });
 
-  it('clearChecked removes only checked items', async () => {
+  it('undoRemove cancels a pending removal', async () => {
+    vi.useFakeTimers();
+    const result = await setup();
+    act(() => { result.current.addItem('Bread'); });
+    const id = result.current.items[0].id;
+
+    act(() => { result.current.removeItem(id); });
+    act(() => { result.current.undoRemove(id); });
+    expect(result.current.pendingIds.has(id)).toBe(false);
+
+    act(() => { vi.advanceTimersByTime(REMOVAL_DELAY_MS); });
+    expect(result.current.items).toHaveLength(1);
+  });
+
+  it('clearChecked defers removal of only checked items', async () => {
+    vi.useFakeTimers();
     const result = await setup();
     act(() => {
       result.current.addItem('Milk');
@@ -58,6 +99,11 @@ describe('useShoppingList', () => {
     const firstId = result.current.items[0].id;
     act(() => { result.current.toggleItem(firstId); });
     act(() => { result.current.clearChecked(); });
+
+    expect(result.current.items).toHaveLength(2);
+    expect(result.current.pendingIds.has(firstId)).toBe(true);
+
+    act(() => { vi.advanceTimersByTime(REMOVAL_DELAY_MS); });
     expect(result.current.items).toHaveLength(1);
     expect(result.current.items.every(i => !i.checked)).toBe(true);
   });
