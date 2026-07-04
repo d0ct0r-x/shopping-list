@@ -19,7 +19,6 @@
   "dependencies": {
     "@expo/cli": "^55.0.27",
     "@react-native-async-storage/async-storage": "^2.2.0",
-    "@rn-primitives/checkbox": "^1.4.0",
     "clsx": "^2.1.1",
     "expo": "~54.0.35",
     "expo-constants": "~18.0.13",
