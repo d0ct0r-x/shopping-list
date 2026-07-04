@@ -1,16 +1,18 @@
+import { Moon, Sun, SunMoon, type LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/ui/icon';
 import type { ThemePreference } from '@/schemas';
 import { useTheme } from '@/theme';
 import { useThemePreference } from '@/useThemePreference';
 
-const OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
+const OPTIONS: { value: ThemePreference; label: string; icon: LucideIcon }[] = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'system', label: 'System', icon: SunMoon },
 ];
 
 const FADE_DURATION_MS = 250;
@@ -46,8 +48,13 @@ export default function SettingsScreen() {
                 onPress={() => handleSelect(option.value)}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                className={`flex-1 items-center py-2 rounded-lg ${selected ? 'bg-primary' : ''}`}
+                className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-lg ${selected ? 'bg-primary' : ''}`}
               >
+                <Icon
+                  as={option.icon}
+                  size={14}
+                  className={selected ? 'text-primary-foreground' : 'text-muted-foreground'}
+                />
                 <Text
                   className={
                     selected
