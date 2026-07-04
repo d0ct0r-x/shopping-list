@@ -17,6 +17,10 @@ module.exports = {
           foreground: 'var(--color-primary-foreground)',
         },
         danger: 'var(--color-danger)',
+        edit: {
+          DEFAULT: 'var(--color-edit)',
+          foreground: 'var(--color-edit-foreground)',
+        },
         foreground: 'var(--color-foreground)',
         'muted-foreground': 'var(--color-muted-foreground)',
         separator: 'var(--color-separator)',

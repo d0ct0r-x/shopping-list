@@ -8,6 +8,8 @@
   --color-primary: #4CAF50;
   --color-primary-foreground: #FFFFFF;
   --color-danger: #FF5252;
+  --color-edit: #F5A623;
+  --color-edit-foreground: #5C3A00;
   --color-foreground: #1A1A1A;
   --color-muted-foreground: #AAAAAA;
   --color-separator: #E8E8E8;
@@ -22,6 +24,8 @@
     --color-primary: #66BB6A;
     --color-primary-foreground: #FFFFFF;
     --color-danger: #EF5350;
+    --color-edit: #FFCA6B;
+    --color-edit-foreground: #3A2600;
     --color-foreground: #FFFFFF;
     --color-muted-foreground: #9E9E9E;
     --color-separator: #2C2C2C;
