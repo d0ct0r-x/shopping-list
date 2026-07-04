@@ -3,11 +3,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddItemBar } from '@/components/AddItemBar';
 import { ItemRow } from '@/components/ItemRow';
-import { useShoppingList } from '@/useShoppingList';
+import { REMOVAL_DELAY_MS, useShoppingList } from '@/useShoppingList';
 
 export default function HomeScreen() {
-  const { items, addItem, toggleItem, removeItem, clearChecked } = useShoppingList();
-  const checkedCount = items.filter(i => i.checked).length;
+  const {
+    items,
+    pendingIds,
+    addItem,
+    toggleItem,
+    updateItem,
+    removeItem,
+    undoRemove,
+    clearChecked,
+  } = useShoppingList();
+  const checkedCount = items.filter(i => i.checked && !pendingIds.has(i.id)).length;
 
   return (
     <KeyboardAvoidingView
@@ -24,7 +33,15 @@ export default function HomeScreen() {
           data={items}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <ItemRow item={item} onToggle={toggleItem} onRemove={removeItem} />
+            <ItemRow
+              item={item}
+              pending={pendingIds.has(item.id)}
+              removalDelayMs={REMOVAL_DELAY_MS}
+              onToggle={toggleItem}
+              onRemove={removeItem}
+              onUndoRemove={undoRemove}
+              onUpdate={updateItem}
+            />
           )}
           ItemSeparatorComponent={() => <View className="h-px bg-separator" />}
           contentContainerStyle={items.length === 0 ? styles.emptyContainer : undefined}
