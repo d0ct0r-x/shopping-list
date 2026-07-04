@@ -1,11 +1,15 @@
+import { useRouter } from 'expo-router';
+import { Settings } from 'lucide-react-native';
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddItemBar } from '@/components/AddItemBar';
 import { ItemRow } from '@/components/ItemRow';
+import { Icon } from '@/components/ui/icon';
 import { REMOVAL_DELAY_MS, useShoppingList } from '@/useShoppingList';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const {
     items,
     pendingIds,
@@ -24,8 +28,15 @@ export default function HomeScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <SafeAreaView className="flex-1">
-        <View className="px-4 pt-3 pb-2">
+        <View className="flex-row items-center justify-between px-4 pt-3 pb-2">
           <Text className="text-[28px] font-bold text-foreground">Shopping List</Text>
+          <Pressable
+            accessibilityLabel="Settings"
+            hitSlop={12}
+            onPress={() => router.push('/settings')}
+          >
+            <Icon as={Settings} size={24} className="text-muted-foreground" />
+          </Pressable>
         </View>
         <AddItemBar onAdd={addItem} />
         <FlatList
