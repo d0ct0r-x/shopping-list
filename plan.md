@@ -2,17 +2,18 @@
 
 ## Chosen Stack
 
-| Concern | Choice | Rationale |
-|---|---|---|
-| Navigation | **Expo Router v4** | File-based routing built into Expo SDK 54; deep linking automatic; type-safe hrefs |
-| Styling | **NativeWind v4** | New Architecture compatible; Tailwind class vocab; light/dark theming via CSS vars |
-| UI components | **react-native-reusables** | shadcn-style — you own the source, composable, New Arch safe |
-| Unit/logic tests | **Vitest** | User preference; works well for hooks/utils; fast |
-| Component tests | **jest-expo** | Only option for rendering RN components; RNTL API is near-identical to RTL |
-| Linting | **eslint-config-expo + Prettier** | Expo-maintained; includes react-hooks exhaustive-deps (no Biome equivalent yet) |
-| Validation | **Zod** | At storage boundary; derive TypeScript types from schemas |
+| Concern          | Choice                            | Rationale                                                                          |
+| ---------------- | --------------------------------- | ---------------------------------------------------------------------------------- |
+| Navigation       | **Expo Router v4**                | File-based routing built into Expo SDK 54; deep linking automatic; type-safe hrefs |
+| Styling          | **NativeWind v4**                 | New Architecture compatible; Tailwind class vocab; light/dark theming via CSS vars |
+| UI components    | **react-native-reusables**        | shadcn-style — you own the source, composable, New Arch safe                       |
+| Unit/logic tests | **Vitest**                        | User preference; works well for hooks/utils; fast                                  |
+| Component tests  | **jest-expo**                     | Only option for rendering RN components; RNTL API is near-identical to RTL         |
+| Linting          | **eslint-config-expo + Prettier** | Expo-maintained; includes react-hooks exhaustive-deps (no Biome equivalent yet)    |
+| Validation       | **Zod**                           | At storage boundary; derive TypeScript types from schemas                          |
 
 ### Key ecosystem warnings
+
 - **NativeWind must be v4.1+** — v2/v3 don't support New Architecture (Fabric)
 - **Tailwind must stay at v3** — Tailwind v4 uses a different config format NativeWind v4 doesn't support yet
 - **Expo Router requires default exports for screen files** — exception to the named-export rule; all non-screen files remain named exports
@@ -23,9 +24,11 @@
 ## Phases
 
 ### Phase 0 — Tooling
+
 > No user-visible change. Safe to do in isolation.
 
 **Install (devDependencies):**
+
 ```
 eslint eslint-config-expo prettier @trivago/prettier-plugin-sort-imports
 vitest @vitest/coverage-v8
@@ -33,6 +36,7 @@ zod
 ```
 
 **Files:**
+
 - `eslint.config.js` — flat config via `eslint-config-expo`
 - `.prettierrc` — `singleQuote`, `trailingComma: "all"`, `printWidth: 100`, sort-imports plugin
 - `vitest.config.ts` — node env, glob `src/**/*.test.ts`, alias AsyncStorage to manual mock
@@ -51,11 +55,13 @@ zod
 ### Phase 1 — Expo Router Migration
 
 **Install:**
+
 ```
 expo-router expo-linking expo-constants
 ```
 
 **Files:**
+
 - `package.json` — change `"main"` from `"index.ts"` to `"expo-router/entry"`
 - `app.json` — add `"scheme": "shoppinglist"`, confirm `"web": { "bundler": "metro" }`
 - `tsconfig.json` — add `"moduleResolution": "bundler"`, update `"include"` for `.expo/types/**`
@@ -73,11 +79,13 @@ expo-router expo-linking expo-constants
 ### Phase 2 — NativeWind + Theme System
 
 **Install:**
+
 ```
 nativewind tailwindcss@^3
 ```
 
 **Files:**
+
 - `tailwind.config.js` — content globs for `app/**` and `src/**`; semantic colour tokens (`background`, `surface`, `primary`, `danger`, `text`, `muted`) as CSS vars for light/dark
 - `metro.config.js` — wrap with `withNativeWind` from `nativewind/metro`
 - `babel.config.js` — add NativeWind preset
@@ -97,16 +105,19 @@ nativewind tailwindcss@^3
 ### Phase 2.5 — Playwright E2E (Web Target)
 
 **Install (devDependencies):**
+
 ```
 @playwright/test
 ```
 
 **One-time machine setup (not committed):**
+
 ```
 npx playwright install chromium
 ```
 
 **Files to create/change:**
+
 - `playwright.config.ts` — Chromium only; `baseURL: http://localhost:8081`; `webServer` block starts `npx expo start --web` and waits for the URL before running tests; `reuseExistingServer: !process.env.CI` so a locally running dev server is reused; screenshot on failure; output dirs `playwright-report/` and `test-results/`
 - `e2e/smoke.spec.ts` — single spec that:
   1. Navigates to `/`
@@ -121,6 +132,7 @@ npx playwright install chromium
   - update `test` to run Vitest + jest-expo + Playwright in sequence
 
 **Config detail — `playwright.config.ts`:**
+
 ```ts
 import { defineConfig, devices } from '@playwright/test';
 
@@ -145,6 +157,7 @@ export default defineConfig({
 ```
 
 **Verify:**
+
 - `npm run test:e2e` exits 0
 - `screenshots/smoke.png` is written and shows the rendered app
 - `npm run test:unit` still passes (no interference)
@@ -154,11 +167,13 @@ export default defineConfig({
 ### Phase 3 — Component Tests (jest-expo)
 
 **Install (devDependencies):**
+
 ```
 jest jest-expo @testing-library/react-native@^13 @testing-library/jest-native
 ```
 
 **Files:**
+
 - `jest.config.ts` — preset `jest-expo`; transform ignore for NativeWind/Tailwind pkgs; `moduleNameMapper` for `@/*`
 - `package.json` scripts: `test:components` (jest), `test` (runs both suites)
 - `src/components/__tests__/AddItemBar.test.tsx`
@@ -174,6 +189,7 @@ jest jest-expo @testing-library/react-native@^13 @testing-library/jest-native
 No new packages.
 
 **Files:**
+
 - `app/(tabs)/_layout.tsx` — `Tabs` layout; List + Settings tabs; icons via `@expo/vector-icons`
 - `app/(tabs)/index.tsx` — shopping list screen (moved from `app/index.tsx`)
 - `app/(tabs)/settings.tsx` — stub Settings screen

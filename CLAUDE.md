@@ -17,6 +17,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) style for all c
 Common types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `style`, `perf`.
 
 Examples:
+
 - `feat(list): add swipe-to-delete gesture`
 - `fix(storage): handle empty AsyncStorage read`
 - `chore: update expo SDK to 55`

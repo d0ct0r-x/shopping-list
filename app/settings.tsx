@@ -1,9 +1,13 @@
-import { Moon, Sun, SunMoon, type LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { type LucideIcon, Moon, Sun, SunMoon } from 'lucide-react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import { Icon } from '@/components/ui/icon';
 import type { ThemePreference } from '@/schemas';
 import { useTheme } from '@/theme';
@@ -43,7 +47,7 @@ export default function SettingsScreen() {
           Appearance
         </Text>
         <View className="flex-row bg-surface rounded-xl border border-separator p-1">
-          {OPTIONS.map(option => {
+          {OPTIONS.map((option) => {
             const selected = option.value === preference;
             return (
               <Pressable
@@ -75,7 +79,14 @@ export default function SettingsScreen() {
       <Animated.View
         pointerEvents="none"
         style={[
-          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: overlayColor },
+          {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: overlayColor,
+          },
           overlayStyle,
         ]}
       />

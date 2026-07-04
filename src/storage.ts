@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { ShoppingItemSchema } from './schemas';
 import type { ShoppingItem } from './schemas';
 
