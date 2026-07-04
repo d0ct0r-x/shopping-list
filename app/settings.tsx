@@ -1,7 +1,7 @@
 import { Moon, Sun, SunMoon, type LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/ui/icon';
@@ -15,7 +15,7 @@ const OPTIONS: { value: ThemePreference; label: string; icon: LucideIcon }[] = [
   { value: 'system', label: 'System', icon: SunMoon },
 ];
 
-const FADE_DURATION_MS = 250;
+const FADE_DURATION_MS = 450;
 
 export default function SettingsScreen() {
   const { preference, setPreference } = useThemePreference();
@@ -30,7 +30,10 @@ export default function SettingsScreen() {
     setOverlayColor(theme.background);
     overlayOpacity.value = 1;
     setPreference(value);
-    overlayOpacity.value = withTiming(0, { duration: FADE_DURATION_MS });
+    overlayOpacity.value = withTiming(0, {
+      duration: FADE_DURATION_MS,
+      easing: Easing.out(Easing.cubic),
+    });
   };
 
   return (
