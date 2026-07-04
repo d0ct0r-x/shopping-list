@@ -7,3 +7,7 @@ export const ShoppingItemSchema = z.object({
 });
 
 export type ShoppingItem = z.infer<typeof ShoppingItemSchema>;
+
+export const ThemePreferenceSchema = z.enum(['light', 'dark', 'system']);
+
+export type ThemePreference = z.infer<typeof ThemePreferenceSchema>;
