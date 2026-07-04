@@ -22,3 +22,5 @@ Examples:
 - `chore: update expo SDK to 55`
 
 Commits should be **atomic** — one logical change per commit. Dependency installs, bug fixes, and config changes should each be their own commit even when made in the same session.
+
+Commit often. Don't let multiple unrelated changes pile up uncommitted in the working tree — commit each logical unit as soon as it's done (and verified) rather than batching a whole session into one commit at the end.
