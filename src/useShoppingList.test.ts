@@ -81,4 +81,56 @@ describe('useShoppingList', () => {
     });
     expect(result.current.items[0].name).toBe('Milk');
   });
+
+  it('restoreLastRemoved reinserts the last removed item at its original index', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+      result.current.addItem('Eggs');
+      result.current.addItem('Bread');
+    });
+    const eggsId = result.current.items[1].id;
+    act(() => {
+      result.current.removeItem(eggsId);
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Milk', 'Bread']);
+    act(() => {
+      result.current.restoreLastRemoved();
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Milk', 'Eggs', 'Bread']);
+  });
+
+  it('lastRemoved is null when there is nothing to restore', async () => {
+    const result = await setup();
+    expect(result.current.lastRemoved).toBeNull();
+  });
+
+  it('restoreLastRemoved is a no-op when nothing has been removed', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+    });
+    act(() => {
+      result.current.restoreLastRemoved();
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Milk']);
+  });
+
+  it('restoreLastRemoved only keeps the single most recent removal', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+      result.current.addItem('Eggs');
+    });
+    const milkId = result.current.items[0].id;
+    const eggsId = result.current.items[1].id;
+    act(() => {
+      result.current.removeItem(milkId);
+      result.current.removeItem(eggsId);
+    });
+    act(() => {
+      result.current.restoreLastRemoved();
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Eggs']);
+  });
 });

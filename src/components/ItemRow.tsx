@@ -5,17 +5,20 @@ import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import type { ShoppingItem } from '@/schemas';
 
 type Props = {
   item: ShoppingItem;
   onRemove: (id: string) => void;
   onEdit: (id: string, name: string) => void;
+  // Set for an item that just handed off from the ghost restore preview —
+  // it already animated in there, so its own FadeIn would double up.
+  skipEntrance?: boolean;
 };
 
 const FADE_DISTANCE = 150;
@@ -23,7 +26,7 @@ const REMOVE_THRESHOLD = 90;
 const EXIT_DURATION_MS = 150;
 const SETTLE_DURATION_MS = 150;
 
-export const ItemRow = ({ item, onRemove, onEdit }: Props) => {
+export const ItemRow = ({ item, onRemove, onEdit, skipEntrance }: Props) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.name);
   const translateX = useSharedValue(0);
@@ -41,21 +44,22 @@ export const ItemRow = ({ item, onRemove, onEdit }: Props) => {
     setEditing(false);
   };
 
+  // Right-swipe only now: left-swipes fail fast (failOffsetX) and fall
+  // through to the list-level restore gesture wrapping the FlatList.
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
+    .activeOffsetX(10)
+    .failOffsetX(-10)
     .failOffsetY([-10, 10])
     .onUpdate((e) => {
-      translateX.value = e.translationX;
-      opacity.value = 1 - Math.min(Math.abs(e.translationX) / FADE_DISTANCE, 1);
+      const clamped = Math.max(0, e.translationX);
+      translateX.value = clamped;
+      opacity.value = 1 - Math.min(clamped / FADE_DISTANCE, 1);
     })
     .onEnd((e) => {
-      if (Math.abs(e.translationX) > REMOVE_THRESHOLD) {
-        const direction = e.translationX > 0 ? 1 : -1;
-        translateX.value = withTiming(direction * FADE_DISTANCE * 2, {
-          duration: EXIT_DURATION_MS,
-        });
+      if (e.translationX > REMOVE_THRESHOLD) {
+        translateX.value = withTiming(FADE_DISTANCE * 2, { duration: EXIT_DURATION_MS });
         opacity.value = withTiming(0, { duration: EXIT_DURATION_MS }, (finished) => {
-          if (finished) runOnJS(remove)();
+          if (finished) scheduleOnRN(remove);
         });
       } else {
         translateX.value = withTiming(0, { duration: SETTLE_DURATION_MS });
@@ -64,7 +68,7 @@ export const ItemRow = ({ item, onRemove, onEdit }: Props) => {
     });
 
   const tapGesture = Gesture.Tap().onEnd(() => {
-    runOnJS(startEditing)();
+    scheduleOnRN(startEditing);
   });
 
   // Race lets a horizontal drag win the pan gesture and cancel the tap,
@@ -79,7 +83,7 @@ export const ItemRow = ({ item, onRemove, onEdit }: Props) => {
 
   return (
     <Animated.View
-      entering={FadeIn}
+      entering={skipEntrance ? undefined : FadeIn}
       exiting={FadeOut}
       layout={LinearTransition}
       style={{ marginBottom: 8 }}
