@@ -34,7 +34,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: theme.background },
           }}
         >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="index" />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         </Stack>
       </SafeAreaProvider>
