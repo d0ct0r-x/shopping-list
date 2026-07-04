@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const ShoppingItemSchema = z.object({
   id: z.string(),
   name: z.string(),
-  checked: z.boolean(),
 });
 
 export type ShoppingItem = z.infer<typeof ShoppingItemSchema>;

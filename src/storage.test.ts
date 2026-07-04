@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { loadItems, saveItems } from './storage';
 
 beforeEach(async () => {
@@ -13,7 +12,7 @@ describe('loadItems', () => {
   });
 
   it('returns stored items', async () => {
-    const items = [{ id: '1', name: 'Milk', checked: false }];
+    const items = [{ id: '1', name: 'Milk' }];
     await saveItems(items);
     expect(await loadItems()).toEqual(items);
   });
@@ -32,16 +31,16 @@ describe('loadItems', () => {
 describe('saveItems', () => {
   it('persists items that survive a reload', async () => {
     const items = [
-      { id: '1', name: 'Eggs', checked: false },
-      { id: '2', name: 'Bread', checked: true },
+      { id: '1', name: 'Eggs' },
+      { id: '2', name: 'Bread' },
     ];
     await saveItems(items);
     expect(await loadItems()).toEqual(items);
   });
 
   it('overwrites previously saved items', async () => {
-    await saveItems([{ id: '1', name: 'Milk', checked: false }]);
-    await saveItems([{ id: '2', name: 'Butter', checked: false }]);
-    expect(await loadItems()).toEqual([{ id: '2', name: 'Butter', checked: false }]);
+    await saveItems([{ id: '1', name: 'Milk' }]);
+    await saveItems([{ id: '2', name: 'Butter' }]);
+    expect(await loadItems()).toEqual([{ id: '2', name: 'Butter' }]);
   });
 });

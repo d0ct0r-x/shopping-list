@@ -1,152 +1,110 @@
-import { useRef, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
-import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
-
-import { Checkbox } from '@/components/ui/checkbox';
-import { UndoRing } from '@/components/UndoRing';
+import { useState } from 'react';
+import { Text, TextInput, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import type { ShoppingItem } from '@/schemas';
-import { useTheme } from '@/theme';
 
 type Props = {
   item: ShoppingItem;
-  pending: boolean;
-  removalDelayMs: number;
-  onToggle: (id: string) => void;
   onRemove: (id: string) => void;
-  onUndoRemove: (id: string) => void;
-  onUpdate: (id: string, name: string) => void;
+  onEdit: (id: string, name: string) => void;
 };
 
-export const ItemRow = ({
-  item,
-  pending,
-  removalDelayMs,
-  onToggle,
-  onRemove,
-  onUndoRemove,
-  onUpdate,
-}: Props) => {
+const FADE_DISTANCE = 150;
+const REMOVE_THRESHOLD = 90;
+const EXIT_DURATION_MS = 150;
+const SETTLE_DURATION_MS = 150;
+
+export const ItemRow = ({ item, onRemove, onEdit }: Props) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.name);
-  const swipeableRef = useRef<SwipeableMethods>(null);
-  const { danger, separator } = useTheme();
+  const translateX = useSharedValue(0);
+  const opacity = useSharedValue(1);
+
+  const remove = () => onRemove(item.id);
+
+  const startEditing = () => {
+    setDraft(item.name);
+    setEditing(true);
+  };
 
   const commitEdit = () => {
-    const trimmed = draft.trim();
-    if (trimmed) onUpdate(item.id, trimmed);
+    onEdit(item.id, draft);
     setEditing(false);
   };
 
-  if (pending) {
-    return (
-      <Animated.View entering={FadeIn} exiting={FadeOut} layout={LinearTransition}>
-        <Pressable
-          className="flex-row items-center bg-surface rounded-xl min-h-14 pl-3 pr-4"
-          onPress={() => onUndoRemove(item.id)}
-        >
-          <View pointerEvents="none" className="mr-3">
-            <Checkbox
-              checked={item.checked}
-              onCheckedChange={() => {}}
-              checkedClassName="border-primary"
-              indicatorClassName="bg-primary"
-              iconClassName="text-primary-foreground"
-            />
-          </View>
-          <Text className="flex-1 text-base text-muted-foreground line-through">{item.name}</Text>
-          <View className="flex-row items-center gap-1.5 ml-2">
-            <UndoRing durationMs={removalDelayMs} color={danger} trackColor={separator} />
-            <Text className="text-danger text-[13px] font-semibold">Undo</Text>
-          </View>
-        </Pressable>
-      </Animated.View>
-    );
-  }
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-10, 10])
+    .onUpdate((e) => {
+      translateX.value = e.translationX;
+      opacity.value = 1 - Math.min(Math.abs(e.translationX) / FADE_DISTANCE, 1);
+    })
+    .onEnd((e) => {
+      if (Math.abs(e.translationX) > REMOVE_THRESHOLD) {
+        const direction = e.translationX > 0 ? 1 : -1;
+        translateX.value = withTiming(direction * FADE_DISTANCE * 2, {
+          duration: EXIT_DURATION_MS,
+        });
+        opacity.value = withTiming(0, { duration: EXIT_DURATION_MS }, (finished) => {
+          if (finished) runOnJS(remove)();
+        });
+      } else {
+        translateX.value = withTiming(0, { duration: SETTLE_DURATION_MS });
+        opacity.value = withTiming(1, { duration: SETTLE_DURATION_MS });
+      }
+    });
 
-  if (editing) {
-    return (
-      <Animated.View entering={FadeIn} exiting={FadeOut} layout={LinearTransition}>
-        <View className="flex-row items-center bg-surface rounded-xl min-h-14 pl-3 pr-3">
-          <View pointerEvents="none" className="mr-3">
-            <Checkbox
-              checked={item.checked}
-              onCheckedChange={() => {}}
-              checkedClassName="border-primary"
-              indicatorClassName="bg-primary"
-              iconClassName="text-primary-foreground"
-            />
-          </View>
-          <TextInput
-            autoFocus
-            value={draft}
-            onChangeText={setDraft}
-            onSubmitEditing={commitEdit}
-            onBlur={commitEdit}
-            returnKeyType="done"
-            className="flex-1 text-base text-foreground py-2.5"
-          />
-        </View>
-      </Animated.View>
-    );
-  }
+  const tapGesture = Gesture.Tap().onEnd(() => {
+    runOnJS(startEditing)();
+  });
+
+  // Race lets a horizontal drag win the pan gesture and cancel the tap,
+  // while a stationary touch resolves as a tap — same disambiguation the
+  // list's own scroll gesture relies on via failOffsetY above.
+  const rowGesture = Gesture.Race(panGesture, tapGesture);
+
+  const rowAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    opacity: opacity.value,
+  }));
 
   return (
-    <Animated.View entering={FadeIn} exiting={FadeOut} layout={LinearTransition}>
-      <Swipeable
-        ref={swipeableRef}
-        overshootLeft={false}
-        overshootRight={false}
-        renderLeftActions={() => (
-          <Pressable
-            className="bg-edit items-center justify-center w-20 rounded-xl mr-2 active:opacity-75"
-            onPress={() => {
-              swipeableRef.current?.close();
-              setDraft(item.name);
-              setEditing(true);
-            }}
+    <Animated.View
+      entering={FadeIn}
+      exiting={FadeOut}
+      layout={LinearTransition}
+      style={{ marginBottom: 8 }}
+    >
+      {editing ? (
+        <View className="flex-row items-center rounded-xl border border-primary bg-surface min-h-14 pl-3 pr-3">
+          <TextInput
+            autoFocus
+            className="flex-1 py-2 text-base text-foreground"
+            value={draft}
+            onChangeText={setDraft}
+            onBlur={commitEdit}
+            returnKeyType="done"
+          />
+        </View>
+      ) : (
+        <GestureDetector gesture={rowGesture}>
+          <Animated.View
+            style={rowAnimatedStyle}
+            className="flex-row items-center bg-surface rounded-xl min-h-14 pl-3 pr-3"
           >
-            <Text className="text-edit-foreground text-[13px] font-semibold">Edit</Text>
-          </Pressable>
-        )}
-        renderRightActions={() => (
-          <Pressable
-            className="bg-danger items-center justify-center w-20 rounded-xl ml-2 active:opacity-75"
-            onPress={() => {
-              swipeableRef.current?.close();
-              onRemove(item.id);
-            }}
-          >
-            <Text className="text-white text-[13px] font-semibold">Delete</Text>
-          </Pressable>
-        )}
-      >
-        <Pressable
-          className="flex-row items-center bg-surface rounded-xl min-h-14 pl-3 pr-3"
-          onPress={() => onToggle(item.id)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: item.checked }}
-        >
-          <View pointerEvents="none" className="mr-3">
-            <Checkbox
-              checked={item.checked}
-              onCheckedChange={() => {}}
-              checkedClassName="border-primary"
-              indicatorClassName="bg-primary"
-              iconClassName="text-primary-foreground"
-            />
-          </View>
-          <Text
-            className={
-              item.checked
-                ? 'text-base text-muted-foreground line-through flex-1'
-                : 'text-base text-foreground flex-1'
-            }
-          >
-            {item.name}
-          </Text>
-        </Pressable>
-      </Swipeable>
+            <Text className="text-base text-foreground flex-1">{item.name}</Text>
+          </Animated.View>
+        </GestureDetector>
+      )}
     </Animated.View>
   );
 };

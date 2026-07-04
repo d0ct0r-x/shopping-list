@@ -6,7 +6,7 @@ test('shopping list renders and accepts items', async ({ page }) => {
 
   await expect(page.getByText('Shopping List')).toBeVisible();
 
-  const input = page.getByPlaceholder('Add an item…');
+  const input = page.getByPlaceholder('Add item');
   await expect(input).toBeVisible();
 
   await input.fill('Milk');
