@@ -3,6 +3,8 @@ import {
   FlatList,
   Keyboard,
   LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   StyleSheet,
@@ -28,12 +30,24 @@ const INITIAL_BAR_HEIGHT_ESTIMATE = 88;
 const RESTORE_REVEAL_DISTANCE = 150;
 const RESTORE_THRESHOLD = 90;
 const RESTORE_SETTLE_MS = 150;
+// ItemRow and GhostItemRow both use min-h-14 (56) plus an 8px bottom
+// margin — used for getItemLayout so scrollToIndex works reliably even
+// for rows outside the currently rendered window.
+const ROW_TOTAL_HEIGHT = 64;
 
 type ListEntry = { kind: 'item'; item: ShoppingItem } | { kind: 'ghost'; item: ShoppingItem };
 
 export default function HomeScreen() {
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
+  // onContentSizeChange fires for any size change (add, delete, restore),
+  // but only an add should trigger scrollToEnd — this flags that the next
+  // size change is specifically due to one.
+  const pendingScrollToEndRef = useRef(false);
+  // Tracked so commitRestore can tell whether the restored index is
+  // already visible before deciding to scroll to it.
+  const scrollOffsetRef = useRef(0);
+  const viewportHeightRef = useRef(0);
   const { items, addItem, removeItem, updateItem, lastRemoved, restoreLastRemoved } =
     useShoppingList();
   const keyboardOffset = useSharedValue(0);
@@ -82,8 +96,28 @@ export default function HomeScreen() {
   };
 
   const commitRestore = () => {
-    if (lastRemoved) setJustRestoredId(lastRemoved.item.id);
-    restoreLastRemoved();
+    if (lastRemoved) {
+      const restoredIndex = Math.min(lastRemoved.index, items.length);
+      setJustRestoredId(lastRemoved.item.id);
+      restoreLastRemoved();
+
+      // Only scroll if the restored row actually falls outside the
+      // currently visible range — unlike add, which always reveals the
+      // new item, restore shouldn't move the list when it's not needed.
+      const itemTop = restoredIndex * ROW_TOTAL_HEIGHT;
+      const itemBottom = itemTop + ROW_TOTAL_HEIGHT;
+      const viewTop = scrollOffsetRef.current;
+      const viewBottom = viewTop + viewportHeightRef.current;
+      const isVisible = itemBottom > viewTop && itemTop < viewBottom;
+
+      if (!isVisible) {
+        flatListRef.current?.scrollToIndex({
+          index: restoredIndex,
+          animated: true,
+          viewPosition: 0.5,
+        });
+      }
+    }
     setIsRestoring(false);
   };
 
@@ -134,14 +168,27 @@ export default function HomeScreen() {
   }, [items, isRestoring, lastRemoved]);
 
   const handleAdd = (name: string) => {
+    pendingScrollToEndRef.current = true;
     addItem(name);
   };
 
   // Fires after the list actually re-measures its content (e.g. once the new
   // row has been laid out), unlike scrollToEnd() called right after addItem,
   // which can run before the new item's height is included and land on n-1.
+  // Also fires for delete/restore, which resize the content too — only act
+  // when the resize was actually caused by an add.
   const handleContentSizeChange = () => {
+    if (!pendingScrollToEndRef.current) return;
+    pendingScrollToEndRef.current = false;
     flatListRef.current?.scrollToEnd({ animated: true });
+  };
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+  };
+
+  const handleListLayout = (e: LayoutChangeEvent) => {
+    viewportHeightRef.current = e.nativeEvent.layout.height;
   };
 
   return (
@@ -169,6 +216,11 @@ export default function HomeScreen() {
                 className="flex-1 mx-4"
                 data={listData}
                 keyExtractor={(entry) => entry.item.id}
+                getItemLayout={(_, index) => ({
+                  length: ROW_TOTAL_HEIGHT,
+                  offset: ROW_TOTAL_HEIGHT * index,
+                  index,
+                })}
                 renderItem={({ item: entry }) =>
                   entry.kind === 'ghost' ? (
                     <GhostItemRow
@@ -187,6 +239,9 @@ export default function HomeScreen() {
                 }
                 contentContainerStyle={listData.length === 0 ? styles.emptyContainer : undefined}
                 onContentSizeChange={handleContentSizeChange}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                onLayout={handleListLayout}
                 ListEmptyComponent={
                   <Text className="text-center text-muted-foreground text-base leading-6">
                     Your list is empty.
