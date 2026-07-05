@@ -48,6 +48,10 @@ export default function HomeScreen() {
   // already visible before deciding to scroll to it.
   const scrollOffsetRef = useRef(0);
   const viewportHeightRef = useRef(0);
+  // Set when a row starts editing while the keyboard isn't up yet — there's
+  // no keyboard-show event to hang the scroll off in that case, so it waits
+  // here until the show listener's animation finishes.
+  const pendingEditIndexRef = useRef<number | null>(null);
   const { items, addItem, removeItem, updateItem, lastRemoved, restoreLastRemoved } =
     useShoppingList();
   const keyboardOffset = useSharedValue(0);
@@ -66,7 +70,17 @@ export default function HomeScreen() {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      keyboardOffset.value = withTiming(e.endCoordinates.height, { duration: e.duration || 250 });
+      const duration = e.duration || 250;
+      keyboardOffset.value = withTiming(e.endCoordinates.height, { duration });
+      // The list's viewport only actually shrinks once this animation
+      // finishes, so a row that requested an edit-scroll while the
+      // keyboard was still closed has to wait until now to be scrolled
+      // into its final, correct position.
+      if (pendingEditIndexRef.current !== null) {
+        const index = pendingEditIndexRef.current;
+        pendingEditIndexRef.current = null;
+        setTimeout(() => scrollEditingRowIntoView(index), duration);
+      }
     });
     const hideSub = Keyboard.addListener(hideEvent, (e) => {
       keyboardOffset.value = withTiming(0, { duration: e.duration || 250 });
@@ -167,6 +181,23 @@ export default function HomeScreen() {
     return entries;
   }, [items, isRestoring, lastRemoved]);
 
+  const scrollEditingRowIntoView = (index: number) => {
+    // Align the row's bottom edge with the bottom of the (already shrunk)
+    // list viewport, so it sits just above the bar/keyboard rather than
+    // being clipped by them.
+    flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 1 });
+  };
+
+  const requestEditScroll = (index: number) => {
+    if (keyboardOffset.value > 0) {
+      // Keyboard's already up — no upcoming show event to hang this off,
+      // so scroll immediately.
+      scrollEditingRowIntoView(index);
+    } else {
+      pendingEditIndexRef.current = index;
+    }
+  };
+
   const handleAdd = (name: string) => {
     pendingScrollToEndRef.current = true;
     addItem(name);
@@ -221,7 +252,7 @@ export default function HomeScreen() {
                   offset: ROW_TOTAL_HEIGHT * index,
                   index,
                 })}
-                renderItem={({ item: entry }) =>
+                renderItem={({ item: entry, index }) =>
                   entry.kind === 'ghost' ? (
                     <GhostItemRow
                       item={entry.item}
@@ -231,8 +262,10 @@ export default function HomeScreen() {
                   ) : (
                     <ItemRow
                       item={entry.item}
+                      index={index}
                       onRemove={removeItem}
                       onEdit={updateItem}
+                      onEditFocus={requestEditScroll}
                       skipEntrance={entry.item.id === justRestoredId}
                     />
                   )

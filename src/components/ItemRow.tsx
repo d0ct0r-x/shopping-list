@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Keyboard, Text, TextInput, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
@@ -14,8 +14,10 @@ import type { ShoppingItem } from '@/schemas';
 
 type Props = {
   item: ShoppingItem;
+  index: number;
   onRemove: (id: string) => void;
   onEdit: (id: string, name: string) => void;
+  onEditFocus: (index: number) => void;
   // Set for an item that just handed off from the ghost restore preview —
   // it already animated in there, so its own FadeIn would double up.
   skipEntrance?: boolean;
@@ -26,7 +28,7 @@ const REMOVE_THRESHOLD = 90;
 const EXIT_DURATION_MS = 150;
 const SETTLE_DURATION_MS = 150;
 
-export const ItemRow = ({ item, onRemove, onEdit, skipEntrance }: Props) => {
+export const ItemRow = ({ item, index, onRemove, onEdit, onEditFocus, skipEntrance }: Props) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.name);
   const translateX = useSharedValue(0);
@@ -43,6 +45,25 @@ export const ItemRow = ({ item, onRemove, onEdit, skipEntrance }: Props) => {
     onEdit(item.id, draft);
     setEditing(false);
   };
+
+  // Ref so the keyboard-hide listener below always calls the latest
+  // commitEdit (which closes over the latest draft) without needing to
+  // resubscribe on every keystroke.
+  const commitEditRef = useRef(commitEdit);
+  commitEditRef.current = commitEdit;
+
+  useEffect(() => {
+    if (!editing) return;
+    // The keyboard can close without the TextInput ever blurring — e.g.
+    // Android's back button/gesture only hides the IME by default and is
+    // consumed before it reaches JS, so onBlur never fires and edit mode
+    // gets stuck open. React to the keyboard actually hiding instead of
+    // trying to catch the specific action that closed it.
+    const sub = Keyboard.addListener('keyboardDidHide', () => {
+      commitEditRef.current();
+    });
+    return () => sub.remove();
+  }, [editing]);
 
   // Right-swipe only now: left-swipes fail fast (failOffsetX) and fall
   // through to the list-level restore gesture wrapping the FlatList.
@@ -89,12 +110,14 @@ export const ItemRow = ({ item, onRemove, onEdit, skipEntrance }: Props) => {
       style={{ marginBottom: 8 }}
     >
       {editing ? (
-        <View className="flex-row items-center rounded-xl border border-primary bg-surface min-h-14 pl-3 pr-3">
+        <View className="flex-row items-center bg-surface rounded-xl min-h-14 pl-3 pr-3">
           <TextInput
             autoFocus
-            className="flex-1 py-2 text-base text-foreground"
+            className="flex-1 p-0 text-base text-foreground"
+            style={{ textAlignVertical: 'center' }}
             value={draft}
             onChangeText={setDraft}
+            onFocus={() => onEditFocus(index)}
             onBlur={commitEdit}
             returnKeyType="done"
           />
