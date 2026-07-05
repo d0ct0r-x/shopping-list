@@ -116,7 +116,7 @@ describe('useShoppingList', () => {
     expect(result.current.items.map((i) => i.name)).toEqual(['Milk']);
   });
 
-  it('restoreLastRemoved only keeps the single most recent removal', async () => {
+  it('restoreLastRemoved restores the most recently removed item first', async () => {
     const result = await setup();
     act(() => {
       result.current.addItem('Milk');
@@ -132,5 +132,95 @@ describe('useShoppingList', () => {
       result.current.restoreLastRemoved();
     });
     expect(result.current.items.map((i) => i.name)).toEqual(['Eggs']);
+  });
+
+  it('restoreLastRemoved can chain through multiple removals in LIFO order', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+      result.current.addItem('Eggs');
+    });
+    const milkId = result.current.items[0].id;
+    const eggsId = result.current.items[1].id;
+    act(() => {
+      result.current.removeItem(milkId);
+      result.current.removeItem(eggsId);
+    });
+    expect(result.current.items).toEqual([]);
+    act(() => {
+      result.current.restoreLastRemoved();
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Eggs']);
+    act(() => {
+      result.current.restoreLastRemoved();
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Milk', 'Eggs']);
+  });
+
+  it('a new removal in between restores is undone before the older one', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+      result.current.addItem('Eggs');
+      result.current.addItem('Bread');
+    });
+    const milkId = result.current.items[0].id;
+    const eggsId = result.current.items[1].id;
+    act(() => {
+      result.current.removeItem(milkId);
+      result.current.removeItem(eggsId);
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Bread']);
+    act(() => {
+      result.current.restoreLastRemoved(); // brings Eggs back
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Eggs', 'Bread']);
+    const breadId = result.current.items[1].id;
+    act(() => {
+      result.current.removeItem(breadId); // a new removal, on top of the still-pending Milk
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Eggs']);
+    act(() => {
+      result.current.restoreLastRemoved(); // undoes Bread first — most recent wins
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Eggs', 'Bread']);
+    act(() => {
+      result.current.restoreLastRemoved(); // then Milk
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Milk', 'Eggs', 'Bread']);
+  });
+
+  it('caps removal history at 10, permanently dropping older removals', async () => {
+    const result = await setup();
+    act(() => {
+      for (let i = 0; i < 11; i++) {
+        result.current.addItem(`Item${i}`);
+      }
+    });
+    act(() => {
+      for (const item of result.current.items) {
+        result.current.removeItem(item.id);
+      }
+    });
+    expect(result.current.items).toEqual([]);
+    act(() => {
+      for (let i = 0; i < 11; i++) {
+        result.current.restoreLastRemoved();
+      }
+    });
+    // Item0 was the 11th-most-recent removal by the time all 11 had
+    // happened, so it fell off the 10-deep cap and never comes back.
+    expect(result.current.items.map((i) => i.name)).toEqual([
+      'Item1',
+      'Item2',
+      'Item3',
+      'Item4',
+      'Item5',
+      'Item6',
+      'Item7',
+      'Item8',
+      'Item9',
+      'Item10',
+    ]);
   });
 });

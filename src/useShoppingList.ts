@@ -4,10 +4,14 @@ import { ShoppingItem } from './types';
 
 type LastRemoved = { item: ShoppingItem; index: number };
 
+const MAX_REMOVED_STACK = 10;
+
 export function useShoppingList() {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [lastRemoved, setLastRemoved] = useState<LastRemoved | null>(null);
+  // Most recent removal last. Capped to the last MAX_REMOVED_STACK
+  // deletions — older ones simply become permanently un-restorable.
+  const [removedStack, setRemovedStack] = useState<LastRemoved[]>([]);
 
   useEffect(() => {
     loadItems().then((stored) => {
@@ -32,19 +36,22 @@ export function useShoppingList() {
     setItems((prev) => {
       const index = prev.findIndex((item) => item.id === id);
       if (index === -1) return prev;
-      setLastRemoved({ item: prev[index], index });
+      setRemovedStack((stack) =>
+        [...stack, { item: prev[index], index }].slice(-MAX_REMOVED_STACK),
+      );
       return prev.filter((item) => item.id !== id);
     });
   }, []);
 
   const restoreLastRemoved = useCallback(() => {
-    setLastRemoved((pending) => {
-      if (!pending) return pending;
+    setRemovedStack((stack) => {
+      if (stack.length === 0) return stack;
+      const pending = stack[stack.length - 1];
       setItems((prev) => {
         const index = Math.min(pending.index, prev.length);
         return [...prev.slice(0, index), pending.item, ...prev.slice(index)];
       });
-      return null;
+      return stack.slice(0, -1);
     });
   }, []);
 
@@ -53,6 +60,11 @@ export function useShoppingList() {
     if (!trimmed) return;
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, name: trimmed } : item)));
   }, []);
+
+  // Callers only ever need "the current thing restore would bring back" —
+  // exposing just the top of the stack keeps that surface unchanged even
+  // though multiple removals can now be chained through.
+  const lastRemoved = removedStack.length > 0 ? removedStack[removedStack.length - 1] : null;
 
   return {
     items,
