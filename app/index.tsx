@@ -238,6 +238,11 @@ export default function HomeScreen() {
                   )
                 }
                 contentContainerStyle={listData.length === 0 ? styles.emptyContainer : undefined}
+                // Reanimated's layout-shift animation (LinearTransition) moves
+                // rows via transform, but removeClippedSubviews clips based on
+                // pre-animation layout — on Android this can briefly mis-clip
+                // a boundary row (typically the last one) mid-animation.
+                removeClippedSubviews={false}
                 onContentSizeChange={handleContentSizeChange}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
