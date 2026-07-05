@@ -100,6 +100,59 @@ describe('useShoppingList', () => {
     expect(result.current.items.map((i) => i.name)).toEqual(['Milk', 'Eggs', 'Bread']);
   });
 
+  it('reorderItem moves an item to a later index', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+      result.current.addItem('Eggs');
+      result.current.addItem('Bread');
+    });
+    const milkId = result.current.items[0].id;
+    act(() => {
+      result.current.reorderItem(milkId, 2);
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Eggs', 'Bread', 'Milk']);
+  });
+
+  it('reorderItem moves an item to an earlier index', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+      result.current.addItem('Eggs');
+      result.current.addItem('Bread');
+    });
+    const breadId = result.current.items[2].id;
+    act(() => {
+      result.current.reorderItem(breadId, 0);
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Bread', 'Milk', 'Eggs']);
+  });
+
+  it('reorderItem clamps an out-of-range target index', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+      result.current.addItem('Eggs');
+    });
+    const milkId = result.current.items[0].id;
+    act(() => {
+      result.current.reorderItem(milkId, 99);
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Eggs', 'Milk']);
+  });
+
+  it('reorderItem is a no-op when the target index matches the current one', async () => {
+    const result = await setup();
+    act(() => {
+      result.current.addItem('Milk');
+      result.current.addItem('Eggs');
+    });
+    act(() => {
+      result.current.reorderItem(result.current.items[0].id, 0);
+    });
+    expect(result.current.items.map((i) => i.name)).toEqual(['Milk', 'Eggs']);
+  });
+
   it('lastRemoved is null when there is nothing to restore', async () => {
     const result = await setup();
     expect(result.current.lastRemoved).toBeNull();

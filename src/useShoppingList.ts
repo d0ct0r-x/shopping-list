@@ -61,6 +61,19 @@ export function useShoppingList() {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, name: trimmed } : item)));
   }, []);
 
+  const reorderItem = useCallback((id: string, toIndex: number) => {
+    setItems((prev) => {
+      const fromIndex = prev.findIndex((item) => item.id === id);
+      if (fromIndex === -1) return prev;
+      const clampedTo = Math.max(0, Math.min(toIndex, prev.length - 1));
+      if (clampedTo === fromIndex) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(clampedTo, 0, moved);
+      return next;
+    });
+  }, []);
+
   // Callers only ever need "the current thing restore would bring back" —
   // exposing just the top of the stack keeps that surface unchanged even
   // though multiple removals can now be chained through.
@@ -71,6 +84,7 @@ export function useShoppingList() {
     addItem,
     removeItem,
     updateItem,
+    reorderItem,
     lastRemoved,
     restoreLastRemoved,
     loaded,
