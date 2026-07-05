@@ -21,6 +21,7 @@ import { AddItemBar } from '@/components/AddItemBar';
 import { GhostItemRow } from '@/components/GhostItemRow';
 import { ItemRow } from '@/components/ItemRow';
 import { Icon } from '@/components/ui/icon';
+import { ROW_TOTAL_HEIGHT } from '@/constants';
 import type { ShoppingItem } from '@/schemas';
 import { useShoppingList } from '@/useShoppingList';
 
@@ -30,10 +31,6 @@ const INITIAL_BAR_HEIGHT_ESTIMATE = 88;
 const RESTORE_REVEAL_DISTANCE = 150;
 const RESTORE_THRESHOLD = 90;
 const RESTORE_SETTLE_MS = 150;
-// ItemRow and GhostItemRow both use min-h-14 (56) plus an 8px bottom
-// margin — used for getItemLayout so scrollToIndex works reliably even
-// for rows outside the currently rendered window.
-const ROW_TOTAL_HEIGHT = 64;
 
 type ListEntry = { kind: 'item'; item: ShoppingItem } | { kind: 'ghost'; item: ShoppingItem };
 
@@ -52,11 +49,19 @@ export default function HomeScreen() {
   // no keyboard-show event to hang the scroll off in that case, so it waits
   // here until the show listener's animation finishes.
   const pendingEditIndexRef = useRef<number | null>(null);
-  const { items, addItem, removeItem, updateItem, lastRemoved, restoreLastRemoved } =
+  const { items, addItem, removeItem, updateItem, reorderItem, lastRemoved, restoreLastRemoved } =
     useShoppingList();
   const keyboardOffset = useSharedValue(0);
   const restoreDrag = useSharedValue(0);
   const [isRestoring, setIsRestoring] = useState(false);
+  // Drag-reorder state, shared with every row so each one can tell purely
+  // on the UI thread whether it's the dragged row or a neighbour that
+  // needs to shift out of the way — see ItemRow for the full rationale.
+  const dragActiveId = useSharedValue<string | null>(null);
+  const dragStartIndex = useSharedValue(-1);
+  const dragTargetIndex = useSharedValue(-1);
+  const dragTranslationY = useSharedValue(0);
+  const isDragLive = useSharedValue(false);
   // The item that just handed off from ghost to real ItemRow — skips its
   // own entrance fade since the ghost already animated it into view. Ids
   // are never reused, so this never needs to be cleared back to null.
@@ -198,6 +203,14 @@ export default function HomeScreen() {
     }
   };
 
+  const handleDragEnd = (id: string, toIndex: number) => {
+    // ItemRow has already reset its own drag state synchronously by the
+    // time this runs — this just commits the real order, and
+    // LinearTransition (always on) animates every affected row from its
+    // real original position to its real new one.
+    reorderItem(id, toIndex);
+  };
+
   const handleAdd = (name: string) => {
     pendingScrollToEndRef.current = true;
     addItem(name);
@@ -263,9 +276,16 @@ export default function HomeScreen() {
                     <ItemRow
                       item={entry.item}
                       index={index}
+                      itemCount={items.length}
                       onRemove={removeItem}
                       onEdit={updateItem}
                       onEditFocus={requestEditScroll}
+                      dragActiveId={dragActiveId}
+                      dragStartIndex={dragStartIndex}
+                      dragTargetIndex={dragTargetIndex}
+                      dragTranslationY={dragTranslationY}
+                      isDragLive={isDragLive}
+                      onDragEnd={handleDragEnd}
                       skipEntrance={entry.item.id === justRestoredId}
                     />
                   )
