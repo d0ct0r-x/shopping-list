@@ -28,20 +28,22 @@ export const AddItemBar = ({ onAdd }: Props) => {
           className="flex-1 py-2.5 text-base text-foreground"
           value={text}
           onChangeText={setText}
-          placeholder="Add item"
+          placeholder="Add an item"
           placeholderTextColor={mutedForeground}
           returnKeyType="done"
           onSubmitEditing={submit}
           blurOnSubmit={false}
         />
-        <Pressable
-          testID="add-button"
-          accessibilityLabel="Add"
-          className="ml-2 h-9 w-9 items-center justify-center rounded-full bg-primary active:opacity-75"
-          onPress={submit}
-        >
-          <Icon as={Plus} size={18} className="text-white" />
-        </Pressable>
+        {text.trim().length > 0 && (
+          <Pressable
+            testID="add-button"
+            accessibilityLabel="Add"
+            className="ml-2 h-9 w-9 items-center justify-center rounded-full bg-primary active:opacity-75"
+            onPress={submit}
+          >
+            <Icon as={Plus} size={18} className="text-white" />
+          </Pressable>
+        )}
       </View>
     </View>
   );
